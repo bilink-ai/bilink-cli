@@ -6,7 +6,26 @@ settings:
 
 importers:
 
-  .: {}
+  .:
+    optionalDependencies:
+      '@bilink-ai/cli-darwin-arm64':
+        specifier: 0.2.0
+        version: 0.2.0
+      '@bilink-ai/cli-darwin-x64':
+        specifier: 0.2.0
+        version: 0.2.0
+      '@bilink-ai/cli-linux-arm64':
+        specifier: 0.2.0
+        version: 0.2.0
+      '@bilink-ai/cli-linux-x64':
+        specifier: 0.2.0
+        version: 0.2.0
+      '@bilink-ai/cli-win32-arm64':
+        specifier: 0.2.0
+        version: 0.2.0
+      '@bilink-ai/cli-win32-x64':
+        specifier: 0.2.0
+        version: 0.2.0
 
   platforms/darwin-arm64: {}
 
@@ -19,3 +38,61 @@ importers:
   platforms/win32-arm64: {}
 
   platforms/win32-x64: {}
+
+packages:
+
+  '@bilink-ai/cli-darwin-arm64@0.2.0':
+    resolution: {integrity: sha512-bqlYIXoVKEjVHU+Fp+tXw/D5kMfwmHQIsjSId6bsNypxJwGyuY9jPiCvvqJRfyTWqBFfVz51xlxH2nU9dEvpoQ==, tarball: https://registry.npmjs.org/@bilink-ai/cli-darwin-arm64/-/cli-darwin-arm64-0.2.0.tgz}
+    cpu: [arm64]
+    os: [darwin]
+    hasBin: true
+
+  '@bilink-ai/cli-darwin-x64@0.2.0':
+    resolution: {integrity: sha512-MCiQXRmMTB8fH//P1qY0TepswCLkunpnxsdJ/tZAYjAtSZYej4IOuJ1AwPFpTpyxRITzPXUcBIsPi3F3W8D6hw==, tarball: https://registry.npmjs.org/@bilink-ai/cli-darwin-x64/-/cli-darwin-x64-0.2.0.tgz}
+    cpu: [x64]
+    os: [darwin]
+    hasBin: true
+
+  '@bilink-ai/cli-linux-arm64@0.2.0':
+    resolution: {integrity: sha512-z5ZfpN/1/F7TYv6RTe/NqLTXsWWQBdZ3c73WvheJ+84e+uuk0DjLrOM+254QogUrxetpoN3Gu2c/O2wmhgWihQ==, tarball: https://registry.npmjs.org/@bilink-ai/cli-linux-arm64/-/cli-linux-arm64-0.2.0.tgz}
+    cpu: [arm64]
+    os: [linux]
+    hasBin: true
+
+  '@bilink-ai/cli-linux-x64@0.2.0':
+    resolution: {integrity: sha512-ndVOK5x26MacpeFYk4SauzehwNxgfl1gwP2yfnXJCp/ojGym4QiD7P0U6I8OkghFLgp7JBmRutzUQ+ht/dUh0Q==, tarball: https://registry.npmjs.org/@bilink-ai/cli-linux-x64/-/cli-linux-x64-0.2.0.tgz}
+    cpu: [x64]
+    os: [linux]
+    hasBin: true
+
+  '@bilink-ai/cli-win32-arm64@0.2.0':
+    resolution: {integrity: sha512-Yn3aq6xPFtWE9SrEXoBtvByYBarcMNV0m28KsdI0i1iAfnZuLJPwBJwcK8Rvlrlvb0Ur6/kw9Y/7hoa4cwjg5Q==, tarball: https://registry.npmjs.org/@bilink-ai/cli-win32-arm64/-/cli-win32-arm64-0.2.0.tgz}
+    cpu: [arm64]
+    os: [win32]
+    hasBin: true
+
+  '@bilink-ai/cli-win32-x64@0.2.0':
+    resolution: {integrity: sha512-qn6imZW8srg7qH+q46WtjjoTSfuTMj/OilNZUkuYhgDGyCX7/Qy/dudl+R3PWFO6q+wLPY6uZHKon2P+vU3UvA==, tarball: https://registry.npmjs.org/@bilink-ai/cli-win32-x64/-/cli-win32-x64-0.2.0.tgz}
+    cpu: [x64]
+    os: [win32]
+    hasBin: true
+
+snapshots:
+
+  '@bilink-ai/cli-darwin-arm64@0.2.0':
+    optional: true
+
+  '@bilink-ai/cli-darwin-x64@0.2.0':
+    optional: true
+
+  '@bilink-ai/cli-linux-arm64@0.2.0':
+    optional: true
+
+  '@bilink-ai/cli-linux-x64@0.2.0':
+    optional: true
+
+  '@bilink-ai/cli-win32-arm64@0.2.0':
+    optional: true
+
+  '@bilink-ai/cli-win32-x64@0.2.0':
+    optional: true
