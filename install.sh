@@ -27,16 +27,19 @@ err() {
 }
 
 print_logo() {
-  logo_dim=$(printf '\033[90m')
-  logo_bright=$(printf '\033[97m')
   logo_reset=$(printf '\033[0m')
-  printf '%s%s%s%s%s\n' "$logo_dim" "████        ██  " "$logo_bright" "██        ██                  ██  ██" "$logo_reset"
-  printf '%s%s%s%s%s\n' "$logo_dim" "██  ██          " "$logo_bright" "██                            ██ ██ " "$logo_reset"
-  printf '%s%s%s%s%s\n' "$logo_dim" "██  ██  ██  ██  " "$logo_bright" "██    ██  ██████    ██  ██    ███  " "$logo_reset"
-  printf '%s%s%s%s%s\n' "$logo_dim" "████   ██  ██  " "$logo_bright" "██    ██  ██  ██    ██ ██     ███  " "$logo_reset"
-  printf '%s%s%s%s%s\n' "$logo_dim" "██  ██  ██  ██  " "$logo_bright" "██    ██  ██  ██    ████      ██ ██ " "$logo_reset"
-  printf '%s%s%s%s%s\n' "$logo_dim" "████   ██  ██  " "$logo_bright" "████  ██  ██  ██    ██ ██     ██  ██" "$logo_reset"
-  printf '%s%s%s\n' "$logo_dim" " ░░░░   ░░  ░░  ░░░░  ░░  ░░  ░░    ░░ ░░     ░░  ░░" "$logo_reset"
+  logo_main=$(printf '\033[38;5;255m')
+  logo_shadow=$(printf '\033[38;5;244m')
+  logo_shadow_bg=$(printf '\033[48;5;244m')
+  printf '%s\n' ".U...J.U.J.....U..." ".WUU.U.W.U.UU..W.U." ".WJW.W.W.W.WJW.WXU." ".TTT.T.T.T.THT.THT." | awk \
+    -v r="$logo_reset" -v m="$logo_main" -v g="$logo_shadow" -v bg="$logo_shadow_bg" '
+      BEGIN {
+        c["W"] = m "█" r; c["T"] = m "▀" r; c["U"] = m "▄" r;
+        c["G"] = g "█" r; c["H"] = g "▀" r; c["J"] = g "▄" r;
+        c["X"] = m bg "▀" r; c["Y"] = m bg "▄" r; c["."] = " ";
+      }
+      { out = ""; for (i = 1; i <= length($0); i++) { ch = substr($0, i, 1); out = out (ch in c ? c[ch] : ch) } print out }
+    '
 }
 
 print_header() {
@@ -72,6 +75,170 @@ fail() {
     err "$detail"
   done
   exit 1
+}
+
+escape_double_quoted() {
+  printf '%s' "$1" | sed 's/[\\"]/\\&/g; s/`/\\`/g; s/\$/\\$/g'
+}
+
+profile_path_expr() {
+  if [ -n "${HOME:-}" ]; then
+    home_prefix="$HOME/"
+    case "$install_dir" in
+      "$home_prefix"*)
+        suffix=${install_dir#"$home_prefix"}
+        printf '$HOME/%s' "$(escape_double_quoted "$suffix")"
+        return
+        ;;
+    esac
+  fi
+  escape_double_quoted "$install_dir"
+}
+
+display_profile_path() {
+  profile_path="$1"
+  if [ -n "${HOME:-}" ]; then
+    home_prefix="$HOME/"
+    case "$profile_path" in
+      "$home_prefix"*)
+        suffix=${profile_path#"$home_prefix"}
+        printf '~/%s' "$suffix"
+        return
+        ;;
+    esac
+  fi
+  printf '%s' "$profile_path"
+}
+
+shell_profile_file() {
+  shell_name="${SHELL:-}"
+  shell_name="${shell_name##*/}"
+  case "$shell_name" in
+    zsh)
+      printf '%s/.zshrc' "$HOME"
+      ;;
+    bash)
+      if [ "$os" = "darwin" ]; then
+        printf '%s/.bash_profile' "$HOME"
+      else
+        printf '%s/.bashrc' "$HOME"
+      fi
+      ;;
+    fish)
+      printf '%s/.config/fish/config.fish' "$HOME"
+      ;;
+    csh|tcsh)
+      printf '%s/.cshrc' "$HOME"
+      ;;
+    sh|dash|ksh|mksh)
+      printf '%s/.profile' "$HOME"
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
+ensure_shell_profile_path() {
+  profile_status="manual"
+  profile_file=""
+  profile_error=""
+  profile_source=""
+
+  if [ -z "${HOME:-}" ]; then
+    profile_error="HOME is not set"
+    return
+  fi
+  if ! profile_file="$(shell_profile_file)"; then
+    profile_error="unsupported shell: ${SHELL:-unknown}"
+    return
+  fi
+
+  profile_parent="${profile_file%/*}"
+  if ! mkdir -p "$profile_parent" 2>/dev/null; then
+    profile_error="cannot create profile directory: $profile_parent"
+    return
+  fi
+
+  begin_marker="# >>> bilink cli >>>"
+  end_marker="# <<< bilink cli <<<"
+  path_expr="$(profile_path_expr)"
+  shell_name="${SHELL:-}"
+  shell_name="${shell_name##*/}"
+  if [ "$shell_name" = "fish" ]; then
+    path_line="fish_add_path \"$path_expr\""
+  elif [ "$shell_name" = "csh" ] || [ "$shell_name" = "tcsh" ]; then
+    path_line="setenv PATH \"$path_expr:\$PATH\""
+  else
+    path_line="export PATH=\"$path_expr:\$PATH\""
+  fi
+
+  profile_source="$(display_profile_path "$profile_file")"
+  if [ -f "$profile_file" ] && grep -F "$path_line" "$profile_file" >/dev/null 2>&1; then
+    profile_status="present"
+    return
+  fi
+
+  tmp_profile="${profile_file}.bilink.$$"
+  if [ -f "$profile_file" ]; then
+    if ! awk -v begin="$begin_marker" -v end="$end_marker" '
+      $0 == begin { skip = 1; next }
+      $0 == end { skip = 0; next }
+      skip != 1 { print }
+    ' "$profile_file" > "$tmp_profile"; then
+      rm -f "$tmp_profile"
+      profile_error="cannot read profile: $profile_file"
+      return
+    fi
+  elif ! : > "$tmp_profile"; then
+    profile_error="cannot write profile: $profile_file"
+    return
+  fi
+
+  if [ -s "$tmp_profile" ]; then
+    printf '\n' >> "$tmp_profile"
+  fi
+  {
+    printf '%s\n' "$begin_marker"
+    printf '%s\n' "$path_line"
+    printf '%s\n' "$end_marker"
+  } >> "$tmp_profile"
+
+  if ! mv "$tmp_profile" "$profile_file" 2>/dev/null; then
+    rm -f "$tmp_profile"
+    profile_error="cannot update profile: $profile_file"
+    return
+  fi
+  profile_status="updated"
+}
+
+print_path_setup() {
+  ensure_shell_profile_path
+  say ""
+  case "$profile_status" in
+    updated)
+      say "Shell profile updated:"
+      say "  $profile_source"
+      say ""
+      say "Run this to update your current shell:"
+      say "  source $profile_source"
+      ;;
+    present)
+      say "Shell profile already contains Bilink PATH:"
+      say "  $profile_source"
+      say ""
+      say "Run this to update your current shell if needed:"
+      say "  source $profile_source"
+      ;;
+    *)
+      if [ -n "$profile_error" ]; then
+        say "Shell profile was not updated: $profile_error"
+        say ""
+      fi
+      say "Add this to PATH if needed:"
+      say "  export PATH=\"$(profile_path_expr):\$PATH\""
+      ;;
+  esac
 }
 
 cleanup() {
@@ -312,6 +479,7 @@ if [ -n "$current_version" ] && [ -n "$target_version" ]; then
   if [ "$comparison" -eq 0 ]; then
     say "Bilink CLI is already installed and up to date."
     say "Binary: $binary_path"
+    print_path_setup
     exit 0
   fi
   if [ "$comparison" -gt 0 ] && [ "$allow_downgrade" != "1" ]; then
@@ -370,6 +538,7 @@ if [ "$version" = "latest" ] && [ -n "$current_version" ]; then
     say ""
     say "Bilink CLI is already installed and up to date."
     say "Binary: $binary_path"
+    print_path_setup
     exit 0
   fi
   if [ "$latest_comparison" -gt 0 ] && [ "$allow_downgrade" != "1" ]; then
@@ -399,6 +568,4 @@ case "$action" in
 esac
 say "Binary: $binary_path"
 log_step "installed=$binary_path version=$installed_version"
-say ""
-say "Add this to PATH if needed:"
-say '  export PATH="$HOME/.bilink/bin:$PATH"'
+print_path_setup
