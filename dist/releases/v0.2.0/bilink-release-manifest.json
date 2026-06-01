@@ -4,26 +4,26 @@
     {
       "platform": "darwin-arm64",
       "archive": "bilink-darwin-arm64.tar.gz",
-      "sha256": "62576ba1c481ad437736dd11439ecc3bf0806f5617e213a8ea10882a0675f53e",
-      "size_bytes": 2614003
+      "sha256": "c6ac8f5dc7d84b43b49ea80497f72184885b23743cb2049793fd5d811d6f6ec5",
+      "size_bytes": 2613889
     },
     {
       "platform": "darwin-x64",
       "archive": "bilink-darwin-x64.tar.gz",
-      "sha256": "c45e81e89ac386fc02bc2895d566bb71f7582fcd117b5f1221ac3c3f196940d7",
-      "size_bytes": 2780307
+      "sha256": "37eab187f874ce58a820f17edb1f81268ffaaf24e19ebd41c0badcf2e99940f1",
+      "size_bytes": 2780237
     },
     {
       "platform": "linux-arm64",
       "archive": "bilink-linux-arm64.tar.gz",
-      "sha256": "40e58400388aa878326403dde416fbb4a83f11d0f065ffd4338258267fa09208",
-      "size_bytes": 2451973
+      "sha256": "bf359cf5ff50c8e2ed5213f9ec278e46ac367f14bbddd5a4b4dce3ff7612af9d",
+      "size_bytes": 2451898
     },
     {
       "platform": "linux-x64",
       "archive": "bilink-linux-x64.tar.gz",
-      "sha256": "08780c33dcb2bdfc55d573a1057a91159790eedd106180a5d96f4194ef87b50e",
-      "size_bytes": 2637684
+      "sha256": "bd24c62ebed68c5b93298de4d336dc433283e97196be39b1b7d841ca9f47006d",
+      "size_bytes": 2637580
     }
   ]
 }

@@ -132,8 +132,8 @@ function firstExisting(sourceRoot, rels) {
   return null
 }
 
-function run(command, args) {
-  const result = spawnSync(command, args, { stdio: "inherit" })
+function run(command, args, options = {}) {
+  const result = spawnSync(command, args, { stdio: "inherit", ...options })
   if (result.status !== 0) {
     throw new Error(`${command} ${args.join(" ")} failed with status ${result.status}`)
   }
@@ -179,7 +179,9 @@ for (const target of targets) {
       const stagedBinary = path.join(staging, "bilink")
       copyFileSync(outputBinary, stagedBinary)
       chmodSync(stagedBinary, 0o755)
-      run("tar", ["-czf", path.join(releaseDir, `bilink-${target.name}.tar.gz`), "-C", staging, "bilink"])
+      run("tar", ["-czf", path.join(releaseDir, `bilink-${target.name}.tar.gz`), "-C", staging, "bilink"], {
+        env: { ...process.env, COPYFILE_DISABLE: "1" },
+      })
     } finally {
       rmSync(staging, { recursive: true, force: true })
     }
