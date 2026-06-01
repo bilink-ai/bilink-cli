@@ -112,7 +112,7 @@ for (const target of archiveTargets) {
     throw new Error(`manifest metadata mismatch for ${archive}`)
   }
   const listing = run("tar", ["-tzf", archivePath]).trim().split("\n")
-  if (listing.length !== 1 || listing[0] !== "bilink") {
+  if (listing.length !== 1 || !["bilink", "./bilink"].includes(listing[0])) {
     throw new Error(`${archive} must contain exactly one root binary named bilink`)
   }
 }
