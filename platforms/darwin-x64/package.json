@@ -1,0 +1,27 @@
+{
+  "name": "@bilink-ai/cli-darwin-x64",
+  "version": "0.2.0",
+  "description": "Bilink native CLI binary for macOS x64",
+  "license": "UNLICENSED",
+  "type": "module",
+  "bin": {
+    "bilink": "bin/bilink"
+  },
+  "os": [
+    "darwin"
+  ],
+  "cpu": [
+    "x64"
+  ],
+  "files": [
+    "bin",
+    "README.md"
+  ],
+  "scripts": {
+    "prepack": "node ../../scripts/verify-platform-package.mjs ."
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  }
+}

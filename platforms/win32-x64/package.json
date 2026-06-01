@@ -1,0 +1,27 @@
+{
+  "name": "@bilink-ai/cli-win32-x64",
+  "version": "0.2.0",
+  "description": "Bilink native CLI binary for Windows x64",
+  "license": "UNLICENSED",
+  "type": "module",
+  "bin": {
+    "bilink": "bin/bilink.exe"
+  },
+  "os": [
+    "win32"
+  ],
+  "cpu": [
+    "x64"
+  ],
+  "files": [
+    "bin",
+    "README.md"
+  ],
+  "scripts": {
+    "prepack": "node ../../scripts/verify-platform-package.mjs ."
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  }
+}

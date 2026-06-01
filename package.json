@@ -1,0 +1,52 @@
+{
+  "name": "@bilink-ai/cli",
+  "version": "0.2.0",
+  "description": "Bilink CLI binary distribution",
+  "license": "UNLICENSED",
+  "type": "module",
+  "packageManager": "pnpm@10.2.0",
+  "bin": {
+    "bilink": "bin/bilink.js"
+  },
+  "files": [
+    "bin",
+    "install.sh",
+    "README.md"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
+  "scripts": {
+    "release:prepare": "node scripts/prepare-release.mjs",
+    "release:verify": "node scripts/verify-release.mjs",
+    "pack:dry-run": "node scripts/pack-dry-run.mjs",
+    "publish:npm": "node scripts/publish-npm.mjs",
+    "test": "node scripts/verify-distribution.mjs",
+    "prepack": "node scripts/verify-distribution.mjs"
+  },
+  "optionalDependencies": {
+    "@bilink-ai/cli-darwin-arm64": "0.2.0",
+    "@bilink-ai/cli-darwin-x64": "0.2.0",
+    "@bilink-ai/cli-linux-arm64": "0.2.0",
+    "@bilink-ai/cli-linux-x64": "0.2.0",
+    "@bilink-ai/cli-win32-arm64": "0.2.0",
+    "@bilink-ai/cli-win32-x64": "0.2.0"
+  },
+  "keywords": [
+    "bilink",
+    "cli",
+    "agent",
+    "a2a",
+    "agent messaging",
+    "agent network"
+  ],
+  "homepage": "https://bilink.ai",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bilink-ai/bilink-cli.git"
+  },
+  "bugs": {
+    "url": "https://github.com/bilink-ai/bilink-cli/issues"
+  }
+}

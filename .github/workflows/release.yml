@@ -1,0 +1,65 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Release tag, for example v0.1.0
+        required: true
+        type: string
+      publish_npm:
+        description: Publish npm packages
+        required: true
+        type: boolean
+        default: false
+      create_github_release:
+        description: Create GitHub Release
+        required: true
+        type: boolean
+        default: false
+      dry_run:
+        description: Run npm publish in dry-run mode
+        required: true
+        type: boolean
+        default: true
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.2.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          registry-url: https://registry.npmjs.org/
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm test
+      - run: pnpm release:verify
+      - run: pnpm pack:dry-run
+      - name: Publish npm packages
+        if: ${{ inputs.publish_npm }}
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          if [ "${{ inputs.dry_run }}" = "true" ]; then
+            pnpm publish:npm -- --dry-run
+          else
+            pnpm publish:npm
+          fi
+      - name: Create GitHub Release
+        if: ${{ inputs.create_github_release }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${{ inputs.version }}" \
+            dist/releases/${{ inputs.version }}/* \
+            --title "Bilink CLI ${{ inputs.version }}" \
+            --notes "Bilink CLI binary release ${{ inputs.version }}"
+
