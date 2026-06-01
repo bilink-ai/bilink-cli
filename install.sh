@@ -31,7 +31,8 @@ print_logo() {
   logo_main=$(printf '\033[38;5;255m')
   logo_shadow=$(printf '\033[38;5;244m')
   logo_shadow_bg=$(printf '\033[48;5;244m')
-  printf '%s\n' ".U...J.U.J.....U..." ".WUU.U.W.U.UU..W.U." ".WJW.W.W.W.WJW.WXU." ".TTT.T.T.T.THT.THT." | awk \
+  # cspell:disable-next-line
+  printf '%s\n' "..U....J.U.J......U...." "..WUU..U.W.U.UUU..W.U.." "..WJJW.W.W.W.WJJW.WXU.." "..TTTH.T.T.T.THHT.THT.." | awk \
     -v r="$logo_reset" -v m="$logo_main" -v g="$logo_shadow" -v bg="$logo_shadow_bg" '
       BEGIN {
         c["W"] = m "█" r; c["T"] = m "▀" r; c["U"] = m "▄" r;
@@ -47,6 +48,7 @@ print_header() {
     return
   fi
   if [ "$is_tty" -eq 1 ]; then
+    say ""
     print_logo
     say ""
   fi
