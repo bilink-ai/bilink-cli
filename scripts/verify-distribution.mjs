@@ -48,8 +48,17 @@ for (const packageName of Object.keys(rootPkg.optionalDependencies ?? {})) {
   if (!packageName.startsWith("@bilink-ai/cli-")) continue
   const target = packageName.replace("@bilink-ai/cli-", "")
   const platformPkg = readJson(`platforms/${target}/package.json`)
+  const dependencyVersion = rootPkg.optionalDependencies[packageName]
+  if (dependencyVersion !== rootPkg.version) {
+    throw new Error(
+      `root optional dependency ${packageName}@${dependencyVersion} must match root version ${rootPkg.version}`,
+    )
+  }
   if (platformPkg.name !== packageName) {
     throw new Error(`platform package name mismatch for ${target}`)
+  }
+  if (platformPkg.version !== rootPkg.version) {
+    throw new Error(`${packageName} version ${platformPkg.version} must match root version ${rootPkg.version}`)
   }
   if (platformPkg.private === true) {
     throw new Error(`${packageName} must not be private in the public distribution repo`)
@@ -60,4 +69,3 @@ for (const packageName of Object.keys(rootPkg.optionalDependencies ?? {})) {
 }
 
 console.log("distribution: PASS")
-

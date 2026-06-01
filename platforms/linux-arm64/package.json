@@ -18,7 +18,8 @@
     "README.md"
   ],
   "scripts": {
-    "prepack": "node ../../scripts/verify-platform-package.mjs ."
+    "prepack": "node ../../scripts/verify-platform-package.mjs .",
+    "prepublishOnly": "node ../../scripts/verify-platform-package.mjs ."
   },
   "publishConfig": {
     "access": "public",

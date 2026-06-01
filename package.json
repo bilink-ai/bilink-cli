@@ -23,7 +23,8 @@
     "pack:dry-run": "node scripts/pack-dry-run.mjs",
     "publish:npm": "node scripts/publish-npm.mjs",
     "test": "node scripts/verify-distribution.mjs",
-    "prepack": "node scripts/verify-distribution.mjs"
+    "prepack": "node scripts/verify-distribution.mjs",
+    "prepublishOnly": "node scripts/verify-distribution.mjs && node scripts/verify-release.mjs"
   },
   "optionalDependencies": {
     "@bilink-ai/cli-darwin-arm64": "0.2.0",
