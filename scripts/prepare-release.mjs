@@ -24,8 +24,9 @@ const targets = [
     archive: true,
     sources: [
       "bilink-cli/rust/target/aarch64-apple-darwin/release/bilink",
-      "bilink-cli/rust/target/release/bilink",
-      "bilink-cli/platforms/darwin-arm64/bin/bilink",
+      "cli/rust/target/aarch64-apple-darwin/release/bilink",
+      "cli/rust/target/release/bilink",
+      "cli/platforms/darwin-arm64/bin/bilink",
     ],
   },
   {
@@ -33,35 +34,50 @@ const targets = [
     packageDir: "platforms/darwin-x64",
     binaryName: "bilink",
     archive: true,
-    sources: ["bilink-cli/rust/target/x86_64-apple-darwin/release/bilink"],
+    sources: [
+      "bilink-cli/rust/target/x86_64-apple-darwin/release/bilink",
+      "cli/rust/target/x86_64-apple-darwin/release/bilink",
+    ],
   },
   {
     name: "linux-arm64",
     packageDir: "platforms/linux-arm64",
     binaryName: "bilink",
     archive: true,
-    sources: ["bilink-cli/rust/target/aarch64-unknown-linux-musl/release/bilink"],
+    sources: [
+      "bilink-cli/rust/target/aarch64-unknown-linux-musl/release/bilink",
+      "cli/rust/target/aarch64-unknown-linux-musl/release/bilink",
+    ],
   },
   {
     name: "linux-x64",
     packageDir: "platforms/linux-x64",
     binaryName: "bilink",
     archive: true,
-    sources: ["bilink-cli/rust/target/x86_64-unknown-linux-musl/release/bilink"],
+    sources: [
+      "bilink-cli/rust/target/x86_64-unknown-linux-musl/release/bilink",
+      "cli/rust/target/x86_64-unknown-linux-musl/release/bilink",
+    ],
   },
   {
     name: "win32-arm64",
     packageDir: "platforms/win32-arm64",
     binaryName: "bilink.exe",
     archive: false,
-    sources: ["bilink-cli/rust/target/aarch64-pc-windows-gnullvm/release/bilink.exe"],
+    sources: [
+      "bilink-cli/rust/target/aarch64-pc-windows-gnullvm/release/bilink.exe",
+      "cli/rust/target/aarch64-pc-windows-gnullvm/release/bilink.exe",
+    ],
   },
   {
     name: "win32-x64",
     packageDir: "platforms/win32-x64",
     binaryName: "bilink.exe",
     archive: false,
-    sources: ["bilink-cli/rust/target/x86_64-pc-windows-gnu/release/bilink.exe"],
+    sources: [
+      "bilink-cli/rust/target/x86_64-pc-windows-gnu/release/bilink.exe",
+      "cli/rust/target/x86_64-pc-windows-gnu/release/bilink.exe",
+    ],
   },
 ]
 
@@ -150,9 +166,9 @@ const releaseDir = path.join(root, "dist", "releases", args.version)
 updatePackageVersions(version)
 
 if (args.syncInstallScript) {
-  const installScript = path.join(args.source, "bilink-cli", "install.sh")
+  const installScript = firstExisting(args.source, ["bilink-cli/install.sh", "cli/install.sh"])
   if (!existsSync(installScript)) {
-    throw new Error(`missing private source installer: ${installScript}`)
+    throw new Error(`missing private source installer under: ${args.source}`)
   }
   copyFileSync(installScript, path.join(root, "install.sh"))
   chmodSync(path.join(root, "install.sh"), 0o755)

@@ -1,0 +1,29 @@
+{
+  "version": "v0.2.2",
+  "artifacts": [
+    {
+      "platform": "darwin-arm64",
+      "archive": "bilink-darwin-arm64.tar.gz",
+      "sha256": "a5f021f163fa4bf21d5ddf279173df8c43e82065de2710029dcc08e04aac59b5",
+      "size_bytes": 3202015
+    },
+    {
+      "platform": "darwin-x64",
+      "archive": "bilink-darwin-x64.tar.gz",
+      "sha256": "e53132293958453a70cbcf95ec023caf6ed540aee9487cae7b06f277d0546b22",
+      "size_bytes": 3394771
+    },
+    {
+      "platform": "linux-arm64",
+      "archive": "bilink-linux-arm64.tar.gz",
+      "sha256": "250184878fcfdbab8e4af9ac4c343e276c12272ac7b98efdff6c90fb05c87969",
+      "size_bytes": 2981416
+    },
+    {
+      "platform": "linux-x64",
+      "archive": "bilink-linux-x64.tar.gz",
+      "sha256": "669b9bccbdec810843e522a7ed540b457e0d71f43d5cfec5458b603d90de003e",
+      "size_bytes": 3194625
+    }
+  ]
+}
