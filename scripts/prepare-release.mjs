@@ -4,16 +4,13 @@ import {
   copyFileSync,
   existsSync,
   mkdirSync,
-  mkdtempSync,
   readFileSync,
-  rmSync,
   statSync,
   writeFileSync,
 } from "node:fs"
-import { tmpdir } from "node:os"
 import path from "node:path"
-import { spawnSync } from "node:child_process"
 import { fileURLToPath } from "node:url"
+import { gzipSync } from "node:zlib"
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..")
 const targets = [
@@ -21,7 +18,7 @@ const targets = [
     name: "darwin-arm64",
     packageDir: "platforms/darwin-arm64",
     binaryName: "bilink",
-    archive: true,
+    archive: "tar.gz",
     sources: [
       "bilink-cli/rust/target/aarch64-apple-darwin/release/bilink",
       "cli/rust/target/aarch64-apple-darwin/release/bilink",
@@ -33,7 +30,7 @@ const targets = [
     name: "darwin-x64",
     packageDir: "platforms/darwin-x64",
     binaryName: "bilink",
-    archive: true,
+    archive: "tar.gz",
     sources: [
       "bilink-cli/rust/target/x86_64-apple-darwin/release/bilink",
       "cli/rust/target/x86_64-apple-darwin/release/bilink",
@@ -43,7 +40,7 @@ const targets = [
     name: "linux-arm64",
     packageDir: "platforms/linux-arm64",
     binaryName: "bilink",
-    archive: true,
+    archive: "tar.gz",
     sources: [
       "bilink-cli/rust/target/aarch64-unknown-linux-musl/release/bilink",
       "cli/rust/target/aarch64-unknown-linux-musl/release/bilink",
@@ -53,7 +50,7 @@ const targets = [
     name: "linux-x64",
     packageDir: "platforms/linux-x64",
     binaryName: "bilink",
-    archive: true,
+    archive: "tar.gz",
     sources: [
       "bilink-cli/rust/target/x86_64-unknown-linux-musl/release/bilink",
       "cli/rust/target/x86_64-unknown-linux-musl/release/bilink",
@@ -63,7 +60,7 @@ const targets = [
     name: "win32-arm64",
     packageDir: "platforms/win32-arm64",
     binaryName: "bilink.exe",
-    archive: false,
+    archive: "zip",
     sources: [
       "bilink-cli/rust/target/aarch64-pc-windows-gnullvm/release/bilink.exe",
       "cli/rust/target/aarch64-pc-windows-gnullvm/release/bilink.exe",
@@ -73,7 +70,7 @@ const targets = [
     name: "win32-x64",
     packageDir: "platforms/win32-x64",
     binaryName: "bilink.exe",
-    archive: false,
+    archive: "zip",
     sources: [
       "bilink-cli/rust/target/x86_64-pc-windows-gnu/release/bilink.exe",
       "cli/rust/target/x86_64-pc-windows-gnu/release/bilink.exe",
@@ -104,7 +101,7 @@ function parseArgs(argv) {
       continue
     }
   }
-  if (!args.version) {
+  if (!args.version || !/^v\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?$/.test(args.version)) {
     throw new Error("usage: pnpm release:prepare -- --version v0.2.0 [--source ../bilink]")
   }
   return args
@@ -120,6 +117,10 @@ function readJson(rel) {
 
 function writeJson(rel, value) {
   writeFileSync(path.join(root, rel), `${JSON.stringify(value, null, 2)}\n`)
+}
+
+function escapeRegExp(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
 }
 
 function updatePackageVersions(version) {
@@ -140,6 +141,27 @@ function updatePackageVersions(version) {
   }
 }
 
+function updateLockfileVersions(version) {
+  const lockfile = "pnpm-lock.yaml"
+  let text = readFileSync(path.join(root, lockfile), "utf8")
+  for (const target of targets) {
+    const packageName = `@bilink-ai/cli-${target.name}`
+    const pattern = new RegExp(
+      `('${escapeRegExp(packageName)}':\\n[ \\t]+specifier: )[^\\n]+(\\n[ \\t]+version: )[^\\n]+`,
+      "m",
+    )
+    if (!pattern.test(text)) {
+      throw new Error(`expected lockfile entry for ${packageName} was not found`)
+    }
+    text = text.replace(
+      pattern,
+      (_match, specifierPrefix, versionPrefix) =>
+        `${specifierPrefix}${version}${versionPrefix}${version}`,
+    )
+  }
+  writeFileSync(path.join(root, lockfile), text)
+}
+
 function firstExisting(sourceRoot, rels) {
   for (const rel of rels) {
     const candidate = path.join(sourceRoot, rel)
@@ -148,15 +170,117 @@ function firstExisting(sourceRoot, rels) {
   return null
 }
 
-function run(command, args, options = {}) {
-  const result = spawnSync(command, args, { stdio: "inherit", ...options })
-  if (result.status !== 0) {
-    throw new Error(`${command} ${args.join(" ")} failed with status ${result.status}`)
-  }
-}
-
 function sha256(filePath) {
   return createHash("sha256").update(readFileSync(filePath)).digest("hex")
+}
+
+function tarOctal(value, length) {
+  const text = value.toString(8)
+  if (text.length > length - 1) {
+    throw new Error(`tar value ${value} does not fit in ${length} bytes`)
+  }
+  return `${text.padStart(length - 1, "0")}\0`
+}
+
+function writeTarString(header, offset, length, value) {
+  const text = Buffer.from(value)
+  if (text.length > length) {
+    throw new Error(`tar field value is too long: ${value}`)
+  }
+  text.copy(header, offset)
+}
+
+function createSingleFileTarGz(filePath, archivePath) {
+  const file = readFileSync(filePath)
+  const header = Buffer.alloc(512)
+  writeTarString(header, 0, 100, "bilink")
+  writeTarString(header, 100, 8, tarOctal(0o755, 8))
+  writeTarString(header, 108, 8, tarOctal(0, 8))
+  writeTarString(header, 116, 8, tarOctal(0, 8))
+  writeTarString(header, 124, 12, tarOctal(file.length, 12))
+  writeTarString(header, 136, 12, tarOctal(0, 12))
+  header.fill(0x20, 148, 156)
+  writeTarString(header, 156, 1, "0")
+  writeTarString(header, 257, 6, "ustar\0")
+  writeTarString(header, 263, 2, "00")
+
+  const checksum = [...header].reduce((sum, value) => sum + value, 0)
+  writeTarString(header, 148, 8, `${checksum.toString(8).padStart(6, "0")}\0 `)
+
+  const padding = Buffer.alloc((512 - (file.length % 512)) % 512)
+  const end = Buffer.alloc(1024)
+  const tar = Buffer.concat([header, file, padding, end])
+  writeFileSync(archivePath, gzipSync(tar, { mtime: 0 }))
+}
+
+const crcTable = Array.from({ length: 256 }, (_value, index) => {
+  let crc = index
+  for (let bit = 0; bit < 8; bit += 1) {
+    crc = crc & 1 ? 0xedb88320 ^ (crc >>> 1) : crc >>> 1
+  }
+  return crc >>> 0
+})
+
+function crc32(buffer) {
+  let crc = 0xffffffff
+  for (const byte of buffer) {
+    crc = crcTable[(crc ^ byte) & 0xff] ^ (crc >>> 8)
+  }
+  return (crc ^ 0xffffffff) >>> 0
+}
+
+function createSingleFileZip(filePath, archivePath) {
+  const file = readFileSync(filePath)
+  const name = Buffer.from("bilink.exe")
+  const digest = crc32(file)
+  const localHeader = Buffer.alloc(30)
+  localHeader.writeUInt32LE(0x04034b50, 0)
+  localHeader.writeUInt16LE(20, 4)
+  localHeader.writeUInt16LE(0, 6)
+  localHeader.writeUInt16LE(0, 8)
+  localHeader.writeUInt16LE(0, 10)
+  localHeader.writeUInt16LE(0x0021, 12)
+  localHeader.writeUInt32LE(digest, 14)
+  localHeader.writeUInt32LE(file.length, 18)
+  localHeader.writeUInt32LE(file.length, 22)
+  localHeader.writeUInt16LE(name.length, 26)
+  localHeader.writeUInt16LE(0, 28)
+
+  const centralDirectory = Buffer.alloc(46)
+  centralDirectory.writeUInt32LE(0x02014b50, 0)
+  centralDirectory.writeUInt16LE(20, 4)
+  centralDirectory.writeUInt16LE(20, 6)
+  centralDirectory.writeUInt16LE(0, 8)
+  centralDirectory.writeUInt16LE(0, 10)
+  centralDirectory.writeUInt16LE(0, 12)
+  centralDirectory.writeUInt16LE(0x0021, 14)
+  centralDirectory.writeUInt32LE(digest, 16)
+  centralDirectory.writeUInt32LE(file.length, 20)
+  centralDirectory.writeUInt32LE(file.length, 24)
+  centralDirectory.writeUInt16LE(name.length, 28)
+  centralDirectory.writeUInt16LE(0, 30)
+  centralDirectory.writeUInt16LE(0, 32)
+  centralDirectory.writeUInt16LE(0, 34)
+  centralDirectory.writeUInt16LE(0, 36)
+  centralDirectory.writeUInt32LE(0, 38)
+  centralDirectory.writeUInt32LE(0, 42)
+
+  const centralDirectoryOffset = localHeader.length + name.length + file.length
+  const centralDirectorySize = centralDirectory.length + name.length
+  const end = Buffer.alloc(22)
+  end.writeUInt32LE(0x06054b50, 0)
+  end.writeUInt16LE(0, 4)
+  end.writeUInt16LE(0, 6)
+  end.writeUInt16LE(1, 8)
+  end.writeUInt16LE(1, 10)
+  end.writeUInt32LE(centralDirectorySize, 12)
+  end.writeUInt32LE(centralDirectoryOffset, 16)
+  end.writeUInt16LE(0, 20)
+
+  writeFileSync(
+    archivePath,
+    Buffer.concat([localHeader, name, file, centralDirectory, name, end]),
+  )
 }
 
 const args = parseArgs(process.argv.slice(2))
@@ -164,10 +288,11 @@ const version = packageVersion(args.version)
 const releaseDir = path.join(root, "dist", "releases", args.version)
 
 updatePackageVersions(version)
+updateLockfileVersions(version)
 
 if (args.syncInstallScript) {
   const installScript = firstExisting(args.source, ["bilink-cli/install.sh", "cli/install.sh"])
-  if (!existsSync(installScript)) {
+  if (!installScript) {
     throw new Error(`missing private source installer under: ${args.source}`)
   }
   copyFileSync(installScript, path.join(root, "install.sh"))
@@ -189,24 +314,16 @@ for (const target of targets) {
     chmodSync(outputBinary, 0o755)
   }
 
-  if (target.archive) {
-    const staging = mkdtempSync(path.join(tmpdir(), "bilink-release-"))
-    try {
-      const stagedBinary = path.join(staging, "bilink")
-      copyFileSync(outputBinary, stagedBinary)
-      chmodSync(stagedBinary, 0o755)
-      run("tar", ["-czf", path.join(releaseDir, `bilink-${target.name}.tar.gz`), "-C", staging, "bilink"], {
-        env: { ...process.env, COPYFILE_DISABLE: "1" },
-      })
-    } finally {
-      rmSync(staging, { recursive: true, force: true })
-    }
+  if (target.archive === "tar.gz") {
+    createSingleFileTarGz(outputBinary, path.join(releaseDir, `bilink-${target.name}.tar.gz`))
+  } else if (target.archive === "zip") {
+    createSingleFileZip(outputBinary, path.join(releaseDir, `bilink-${target.name}.zip`))
   }
 }
 
 const archives = targets
   .filter((target) => target.archive)
-  .map((target) => `bilink-${target.name}.tar.gz`)
+  .map((target) => `bilink-${target.name}.${target.archive}`)
   .sort()
 const lines = []
 const artifacts = []
@@ -215,7 +332,7 @@ for (const archive of archives) {
   const digest = sha256(archivePath)
   lines.push(`${digest}  ${archive}`)
   artifacts.push({
-    platform: archive.replace(/^bilink-/, "").replace(/\.tar\.gz$/, ""),
+    platform: archive.replace(/^bilink-/, "").replace(/\.(tar\.gz|zip)$/, ""),
     archive,
     sha256: digest,
     size_bytes: statSync(archivePath).size,

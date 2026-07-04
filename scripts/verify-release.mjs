@@ -13,7 +13,14 @@ const packageTargets = [
   ["win32-arm64", "bin/bilink.exe"],
   ["win32-x64", "bin/bilink.exe"],
 ]
-const archiveTargets = ["darwin-arm64", "darwin-x64", "linux-arm64", "linux-x64"]
+const archiveTargets = [
+  { platform: "darwin-arm64", archive: "bilink-darwin-arm64.tar.gz", entry: "bilink" },
+  { platform: "darwin-x64", archive: "bilink-darwin-x64.tar.gz", entry: "bilink" },
+  { platform: "linux-arm64", archive: "bilink-linux-arm64.tar.gz", entry: "bilink" },
+  { platform: "linux-x64", archive: "bilink-linux-x64.tar.gz", entry: "bilink" },
+  { platform: "win32-arm64", archive: "bilink-win32-arm64.zip", entry: "bilink.exe" },
+  { platform: "win32-x64", archive: "bilink-win32-x64.zip", entry: "bilink.exe" },
+]
 const hostTarget = `${process.platform}-${process.arch === "x64" ? "x64" : process.arch}`
 
 function readJson(rel) {
@@ -99,7 +106,7 @@ const checksums = new Map(
 )
 
 for (const target of archiveTargets) {
-  const archive = `bilink-${target}.tar.gz`
+  const archive = target.archive
   const archivePath = path.join(releaseDir, archive)
   if (!existsSync(archivePath)) throw new Error(`missing archive: ${archive}`)
   const digest = sha256(archivePath)
@@ -108,18 +115,24 @@ for (const target of archiveTargets) {
   }
   const artifact = manifest.artifacts?.find((item) => item.archive === archive)
   if (!artifact) throw new Error(`manifest missing ${archive}`)
-  if (artifact.platform !== target || artifact.sha256 !== digest || artifact.size_bytes !== statSync(archivePath).size) {
+  if (
+    artifact.platform !== target.platform ||
+    artifact.sha256 !== digest ||
+    artifact.size_bytes !== statSync(archivePath).size
+  ) {
     throw new Error(`manifest metadata mismatch for ${archive}`)
   }
-  const listing = run("tar", ["-tzf", archivePath]).trim().split("\n")
-  if (listing.length !== 1 || !["bilink", "./bilink"].includes(listing[0])) {
-    throw new Error(`${archive} must contain exactly one root binary named bilink`)
+  const listing = archive.endsWith(".zip")
+    ? run("unzip", ["-Z1", archivePath]).trim().split("\n")
+    : run("tar", ["-tzf", archivePath]).trim().split("\n")
+  if (listing.length !== 1 || ![target.entry, `./${target.entry}`].includes(listing[0])) {
+    throw new Error(`${archive} must contain exactly one root binary named ${target.entry}`)
   }
 }
 
-const expectedArchives = archiveTargets.map((target) => `bilink-${target}.tar.gz`).sort()
+const expectedArchives = archiveTargets.map((target) => target.archive).sort()
 const actualArchives = readdirSync(releaseDir)
-  .filter((name) => /^bilink-.*\.tar\.gz$/.test(name))
+  .filter((name) => /^bilink-.*\.(tar\.gz|zip)$/.test(name))
   .sort()
 if (JSON.stringify(actualArchives) !== JSON.stringify(expectedArchives)) {
   throw new Error(`unexpected archives: ${actualArchives.join(", ")}`)

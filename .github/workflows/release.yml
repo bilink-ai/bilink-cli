@@ -1,4 +1,5 @@
 name: Release
+run-name: Release ${{ inputs.version }}
 
 on:
   workflow_dispatch:
@@ -17,6 +18,11 @@ on:
         required: true
         type: boolean
         default: false
+      resume_npm:
+        description: Skip already published npm packages
+        required: true
+        type: boolean
+        default: false
       dry_run:
         description: Run npm publish in dry-run mode
         required: true
@@ -26,6 +32,10 @@ on:
 permissions:
   contents: write
   id-token: write
+
+concurrency:
+  group: release-${{ inputs.version }}
+  cancel-in-progress: false
 
 jobs:
   release:
@@ -42,24 +52,135 @@ jobs:
           node-version: 24
           cache: pnpm
           registry-url: https://registry.npmjs.org/
-      - run: pnpm install --frozen-lockfile --no-optional
+      - name: Validate release input
+        env:
+          VERSION: ${{ inputs.version }}
+          CREATE_GITHUB_RELEASE: ${{ inputs.create_github_release }}
+          DRY_RUN: ${{ inputs.dry_run }}
+        run: |
+          node <<'NODE'
+          const { existsSync, readFileSync } = require("node:fs")
+          const path = require("node:path")
+
+          const version = process.env.VERSION
+          const createGitHubRelease = process.env.CREATE_GITHUB_RELEASE === "true"
+          const dryRun = process.env.DRY_RUN === "true"
+          if (!version || !/^v\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?$/.test(version)) {
+            throw new Error("version must be a release tag such as v0.2.3")
+          }
+          if (dryRun && createGitHubRelease) {
+            throw new Error("dry_run=true requires create_github_release=false")
+          }
+
+          const packageJson = JSON.parse(readFileSync("package.json", "utf8"))
+          const expectedTag = `v${packageJson.version}`
+          if (version !== expectedTag) {
+            throw new Error(`release input ${version} does not match package.json version ${expectedTag}`)
+          }
+
+          const manifestPath = path.join("dist", "releases", version, "bilink-release-manifest.json")
+          if (!existsSync(manifestPath)) {
+            throw new Error(`missing release manifest: ${manifestPath}`)
+          }
+          const manifest = JSON.parse(readFileSync(manifestPath, "utf8"))
+          if (manifest.version !== version) {
+            throw new Error(`manifest version ${manifest.version} does not match release input ${version}`)
+          }
+          NODE
       - run: pnpm test
       - run: pnpm release:verify
       - run: pnpm pack:dry-run
-      - name: Publish npm packages
+      - name: Verify npm trusted publishing prerequisites
         if: ${{ inputs.publish_npm }}
         run: |
-          if [ "${{ inputs.dry_run }}" = "true" ]; then
-            pnpm publish:npm -- --dry-run
-          else
-            pnpm publish:npm
-          fi
-      - name: Create GitHub Release
+          node <<'NODE'
+          const { execFileSync } = require("node:child_process")
+
+          function parseVersion(value) {
+            const match = value.trim().match(/^(\d+)\.(\d+)\.(\d+)/)
+            if (!match) {
+              throw new Error(`could not parse version: ${value}`)
+            }
+            return match.slice(1).map(Number)
+          }
+
+          function isAtLeast(actual, minimum) {
+            for (let index = 0; index < minimum.length; index += 1) {
+              if (actual[index] > minimum[index]) return true
+              if (actual[index] < minimum[index]) return false
+            }
+            return true
+          }
+
+          const nodeVersion = parseVersion(process.versions.node)
+          if (!isAtLeast(nodeVersion, [22, 14, 0])) {
+            throw new Error(`npm trusted publishing requires Node.js 22.14.0 or newer; found ${process.versions.node}`)
+          }
+
+          const npmVersionText = execFileSync("npm", ["--version"], { encoding: "utf8" }).trim()
+          const npmVersion = parseVersion(npmVersionText)
+          if (!isAtLeast(npmVersion, [11, 5, 1])) {
+            throw new Error(`npm trusted publishing requires npm CLI 11.5.1 or newer; found ${npmVersionText}`)
+          }
+          console.log(`trusted publishing prerequisites: node ${process.versions.node}, npm ${npmVersionText}`)
+          NODE
+      - name: Check GitHub Release target
         if: ${{ inputs.create_github_release }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          echo "BILINK_RELEASE_DRAFT_EXISTS=false" >> "$GITHUB_ENV"
+          output_file="$(mktemp)"
+          if gh release view "${{ inputs.version }}" --json isDraft --jq '.isDraft' >"$output_file" 2>&1; then
+            if grep -qx "true" "$output_file"; then
+              echo "GitHub Release ${{ inputs.version }} already exists as draft; reusing it"
+              echo "BILINK_RELEASE_DRAFT_EXISTS=true" >> "$GITHUB_ENV"
+              rm -f "$output_file"
+              exit 0
+            fi
+            echo "GitHub Release ${{ inputs.version }} already exists as a published release" >&2
+            rm -f "$output_file"
+            exit 1
+          fi
+          if ! grep -Eiq 'not found|404' "$output_file"; then
+            echo "failed to verify GitHub Release ${{ inputs.version }} availability:" >&2
+            cat "$output_file" >&2
+            rm -f "$output_file"
+            exit 1
+          fi
+          rm -f "$output_file"
+      - name: Create draft GitHub Release
+        if: ${{ inputs.create_github_release && env.BILINK_RELEASE_DRAFT_EXISTS != 'true' }}
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release create "${{ inputs.version }}" \
             dist/releases/${{ inputs.version }}/* \
+            --draft \
             --title "Bilink CLI ${{ inputs.version }}" \
             --notes "Bilink CLI binary release ${{ inputs.version }}"
+      - name: Update draft GitHub Release assets
+        if: ${{ inputs.create_github_release && env.BILINK_RELEASE_DRAFT_EXISTS == 'true' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "${{ inputs.version }}" dist/releases/${{ inputs.version }}/* --clobber
+      - name: Publish npm packages
+        if: ${{ inputs.publish_npm }}
+        run: |
+          args=()
+          if [ "${{ inputs.resume_npm }}" = "true" ]; then
+            args+=(--allow-existing)
+          fi
+          if [ "${{ inputs.dry_run }}" = "true" ]; then
+            args+=(--dry-run)
+          fi
+          if [ "${#args[@]}" -gt 0 ]; then
+            pnpm publish:npm -- "${args[@]}"
+          else
+            pnpm publish:npm
+          fi
+      - name: Publish GitHub Release
+        if: ${{ inputs.create_github_release }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release edit "${{ inputs.version }}" --draft=false
