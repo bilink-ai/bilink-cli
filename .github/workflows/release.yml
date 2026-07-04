@@ -42,11 +42,12 @@ jobs:
     runs-on: ubuntu-latest
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+      PNPM_CONFIG_VERIFY_DEPS_BEFORE_RUN: "false"
     steps:
       - uses: actions/checkout@v6
       - uses: pnpm/action-setup@v6
         with:
-          version: 10.2.0
+          version: 11.9.0
       - uses: actions/setup-node@v6
         with:
           node-version: 24

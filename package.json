@@ -4,7 +4,7 @@
   "description": "Bilink CLI binary distribution",
   "license": "UNLICENSED",
   "type": "module",
-  "packageManager": "pnpm@10.2.0",
+  "packageManager": "pnpm@11.9.0",
   "bin": {
     "bilink": "bin/bilink.js"
   },

@@ -26,15 +26,22 @@ const packageDirs = [
   ".",
 ]
 
+function npmEnv() {
+  const env = { ...process.env }
+  delete env.npm_config_verify_deps_before_run
+  delete env.NPM_CONFIG_VERIFY_DEPS_BEFORE_RUN
+  return env
+}
+
 function run(command, args, cwd) {
-  const result = spawnSync(command, args, { cwd, stdio: "inherit" })
+  const result = spawnSync(command, args, { cwd, env: npmEnv(), stdio: "inherit" })
   if (result.status !== 0) {
     process.exit(result.status ?? 1)
   }
 }
 
 function runText(command, args, cwd) {
-  return spawnSync(command, args, { cwd, encoding: "utf8" })
+  return spawnSync(command, args, { cwd, encoding: "utf8", env: npmEnv() })
 }
 
 function readJson(rel) {
