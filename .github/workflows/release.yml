@@ -25,6 +25,7 @@ on:
 
 permissions:
   contents: write
+  id-token: write
 
 jobs:
   release:
@@ -47,8 +48,6 @@ jobs:
       - run: pnpm pack:dry-run
       - name: Publish npm packages
         if: ${{ inputs.publish_npm }}
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           if [ "${{ inputs.dry_run }}" = "true" ]; then
             pnpm publish:npm -- --dry-run
