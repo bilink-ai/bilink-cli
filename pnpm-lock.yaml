@@ -6,26 +6,7 @@ settings:
 
 importers:
 
-  .:
-    optionalDependencies:
-      '@bilink-ai/cli-darwin-arm64':
-        specifier: 0.2.2
-        version: 0.2.2
-      '@bilink-ai/cli-darwin-x64':
-        specifier: 0.2.2
-        version: 0.2.2
-      '@bilink-ai/cli-linux-arm64':
-        specifier: 0.2.2
-        version: 0.2.2
-      '@bilink-ai/cli-linux-x64':
-        specifier: 0.2.2
-        version: 0.2.2
-      '@bilink-ai/cli-win32-arm64':
-        specifier: 0.2.2
-        version: 0.2.2
-      '@bilink-ai/cli-win32-x64':
-        specifier: 0.2.2
-        version: 0.2.2
+  .: {}
 
   platforms/darwin-arm64: {}
 

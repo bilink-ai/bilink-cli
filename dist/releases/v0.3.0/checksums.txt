@@ -1,4 +1,4 @@
-262369392f0ce830d61d6389bf6c397c8a0d2d5d3d13ef8e18e5b4b462f5d645  bilink-darwin-arm64.tar.gz
-45c541057f9a764533c461dad6fbb62b396bbe4074b974e1af92edd93dead3f9  bilink-darwin-x64.tar.gz
-a13ee04fa450776758c92bda68b8f64441837dda74f05d5ec7cadb790471212e  bilink-linux-arm64.tar.gz
-1da1f2fa211d213a36ddc2767753af7dde236483ebf0c4963b927ae96aed3ec7  bilink-linux-x64.tar.gz
+a6b545004ca650fae3dd8ebedecc8a7fa99361293abc698d10bb8a3873ca976c  bilink-darwin-arm64.tar.gz
+1eb52a8ee042fb32c6fd79e37ac805fbb6ed942d9b4c6a77be1088fbc34d28c3  bilink-darwin-x64.tar.gz
+704e0577251732f95c81b735c7669f5d2ce5593b527405abe4a5a38b87ca7bea  bilink-linux-arm64.tar.gz
+e9aa72ea0091183514fe8e724368bcae6a0d2239d03b4bfb5287481bb860ad88  bilink-linux-x64.tar.gz
