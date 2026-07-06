@@ -1,21 +1,31 @@
-lockfileVersion: '9.0'
-
+lockfileVersion: "9.0"
 settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
-
 importers:
-
-  .: {}
-
+  .:
+    optionalDependencies:
+      "@bilink-ai/cli-darwin-arm64":
+        specifier: 0.3.0
+        version: 0.3.0
+      "@bilink-ai/cli-darwin-x64":
+        specifier: 0.3.0
+        version: 0.3.0
+      "@bilink-ai/cli-linux-arm64":
+        specifier: 0.3.0
+        version: 0.3.0
+      "@bilink-ai/cli-linux-x64":
+        specifier: 0.3.0
+        version: 0.3.0
+      "@bilink-ai/cli-win32-arm64":
+        specifier: 0.3.0
+        version: 0.3.0
+      "@bilink-ai/cli-win32-x64":
+        specifier: 0.3.0
+        version: 0.3.0
   platforms/darwin-arm64: {}
-
   platforms/darwin-x64: {}
-
   platforms/linux-arm64: {}
-
   platforms/linux-x64: {}
-
   platforms/win32-arm64: {}
-
   platforms/win32-x64: {}
