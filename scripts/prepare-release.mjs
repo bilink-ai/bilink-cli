@@ -245,7 +245,7 @@ function updateLockfileVersions(version) {
   for (const target of targets) {
     const packageName = `@bilink-ai/cli-${target.name}`
     const pattern = new RegExp(
-      `('${escapeRegExp(packageName)}':\\n[ \\t]+specifier: )[^\\n]+(\\n[ \\t]+version: )[^\\n]+`,
+      `(^[ \\t]+["']?${escapeRegExp(packageName)}["']?:\\n[ \\t]+specifier: )[^\\n]+(\\n[ \\t]+version: )[^\\n]+`,
       "m",
     )
     if (!pattern.test(text)) {
