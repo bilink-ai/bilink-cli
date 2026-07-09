@@ -2,7 +2,7 @@
   "name": "@bilink-ai/cli",
   "version": "0.3.0",
   "description": "Bilink CLI binary distribution",
-  "license": "UNLICENSED",
+  "license": "Apache-2.0",
   "type": "module",
   "packageManager": "pnpm@11.9.0",
   "bin": {
@@ -11,7 +11,8 @@
   "files": [
     "bin",
     "install.sh",
-    "README.md"
+    "README.md",
+    "LICENSE"
   ],
   "publishConfig": {
     "access": "public",

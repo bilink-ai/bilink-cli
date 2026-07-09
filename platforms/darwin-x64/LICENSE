@@ -1,0 +1,11 @@
+Bilink Native CLI Binary License
+
+This package contains a platform-specific Bilink native CLI binary.
+
+The native binary is not licensed under an open-source license. Use, copying,
+redistribution, and modification of the native binary are governed by the
+Bilink Terms of Service or a separate written agreement with Bilink AI.
+
+Source code that is separately published by Bilink AI under an open-source
+license remains governed by that source project's license. This license file
+only describes the platform-specific native binary distributed in this package.

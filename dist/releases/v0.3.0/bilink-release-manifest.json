@@ -24,6 +24,18 @@
       "archive": "bilink-linux-x64.tar.gz",
       "sha256": "609698f7e68b12b44b184cc7adc2dbe552e5afa7f6324a739636177d08bae651",
       "size_bytes": 3209327
+    },
+    {
+      "platform": "win32-arm64",
+      "archive": "bilink-win32-arm64.zip",
+      "sha256": "580447968d6b22de8b8f04d86f4f9d91093d18cfa415808788f1bc63dd213c46",
+      "size_bytes": 5405302
+    },
+    {
+      "platform": "win32-x64",
+      "archive": "bilink-win32-x64.zip",
+      "sha256": "f08f2675947a9e7364b71dfe203d8e53083acff6a181160afbf152de60b82d14",
+      "size_bytes": 8684150
     }
   ]
 }

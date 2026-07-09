@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto"
+import { spawnSync } from "node:child_process"
 import {
   chmodSync,
   copyFileSync,
@@ -13,6 +14,7 @@ import { fileURLToPath } from "node:url"
 import { gzipSync } from "node:zlib"
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..")
+const hostTarget = `${process.platform}-${process.arch === "x64" ? "x64" : process.arch}`
 const targets = [
   {
     name: "darwin-arm64",
@@ -119,8 +121,104 @@ function writeJson(rel, value) {
   writeFileSync(path.join(root, rel), `${JSON.stringify(value, null, 2)}\n`)
 }
 
+function copyRequired(sourceRoot, sourceRel, targetRel = sourceRel) {
+  const sourcePath = path.join(sourceRoot, sourceRel)
+  if (!existsSync(sourcePath)) {
+    throw new Error(`missing source file: ${sourcePath}`)
+  }
+  copyFileSync(sourcePath, path.join(root, targetRel))
+}
+
+function packageMetadata(sourcePkg, targetPkg, fields) {
+  for (const field of fields) {
+    if (Object.hasOwn(sourcePkg, field)) {
+      targetPkg[field] = sourcePkg[field]
+    } else {
+      delete targetPkg[field]
+    }
+  }
+}
+
+function syncSourceMetadata(sourceRoot) {
+  const sourceCliRoot = firstExisting(sourceRoot, ["bilink-cli/package.json", "cli/package.json"])
+  if (!sourceCliRoot) {
+    throw new Error(`missing private source CLI package under: ${sourceRoot}`)
+  }
+  const sourceCliDir = path.dirname(sourceCliRoot)
+
+  copyRequired(sourceCliDir, "LICENSE")
+
+  const rootSourcePkg = JSON.parse(readFileSync(sourceCliRoot, "utf8"))
+  const rootPkg = readJson("package.json")
+  packageMetadata(rootSourcePkg, rootPkg, [
+    "name",
+    "license",
+    "type",
+    "bin",
+    "files",
+  ])
+  delete rootPkg.private
+  rootPkg.publishConfig = {
+    access: "public",
+    registry: "https://registry.npmjs.org/",
+  }
+  rootPkg.scripts = {
+    "release:prepare": "node scripts/prepare-release.mjs",
+    "release:verify": "node scripts/verify-release.mjs",
+    "pack:dry-run": "node scripts/pack-dry-run.mjs",
+    "publish:npm": "node scripts/publish-npm.mjs",
+    test: "node scripts/verify-distribution.mjs",
+    prepack: "node scripts/verify-distribution.mjs",
+    prepublishOnly: "node scripts/verify-distribution.mjs && node scripts/verify-release.mjs",
+  }
+  writeJson("package.json", rootPkg)
+
+  for (const target of targets) {
+    const sourcePackageRel = path.join(target.packageDir, "package.json")
+    const sourcePackagePath = path.join(sourceCliDir, sourcePackageRel.replace(/^platforms\//, "platforms/"))
+    if (!existsSync(sourcePackagePath)) {
+      throw new Error(`missing source package metadata: ${sourcePackagePath}`)
+    }
+
+    copyRequired(sourceCliDir, path.join(target.packageDir, "LICENSE"))
+
+    const sourcePkg = JSON.parse(readFileSync(sourcePackagePath, "utf8"))
+    const pkg = readJson(path.join(target.packageDir, "package.json"))
+    packageMetadata(sourcePkg, pkg, [
+      "name",
+      "description",
+      "license",
+      "type",
+      "bin",
+      "os",
+      "cpu",
+      "files",
+    ])
+    delete pkg.private
+    pkg.publishConfig = {
+      access: "public",
+      registry: "https://registry.npmjs.org/",
+    }
+    pkg.scripts = {
+      prepack: "node ../../scripts/verify-platform-package.mjs .",
+      prepublishOnly: "node ../../scripts/verify-platform-package.mjs .",
+    }
+    writeJson(path.join(target.packageDir, "package.json"), pkg)
+  }
+}
+
 function escapeRegExp(value) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+}
+
+function replaceRequired(rel, pattern, replacement) {
+  const filePath = path.join(root, rel)
+  const before = readFileSync(filePath, "utf8")
+  if (!pattern.test(before)) {
+    throw new Error(`expected release version pattern was not found in ${rel}`)
+  }
+  const after = before.replace(pattern, replacement)
+  if (after !== before) writeFileSync(filePath, after)
 }
 
 function updatePackageVersions(version) {
@@ -172,6 +270,22 @@ function firstExisting(sourceRoot, rels) {
 
 function sha256(filePath) {
   return createHash("sha256").update(readFileSync(filePath)).digest("hex")
+}
+
+function verifyHostSourceBinaryVersion(filePath, expectedVersion) {
+  const result = spawnSync(filePath, ["version"], { encoding: "utf8" })
+  if (result.status !== 0) {
+    throw new Error(`failed to run source binary ${filePath}: ${result.stderr || result.stdout}`)
+  }
+  let version
+  try {
+    version = JSON.parse(result.stdout).version
+  } catch (_error) {
+    throw new Error(`source binary version output is not JSON: ${result.stdout.trim()}`)
+  }
+  if (version !== expectedVersion) {
+    throw new Error(`source binary ${filePath} reports ${version}, expected ${expectedVersion}`)
+  }
 }
 
 function tarOctal(value, length) {
@@ -287,8 +401,14 @@ const args = parseArgs(process.argv.slice(2))
 const version = packageVersion(args.version)
 const releaseDir = path.join(root, "dist", "releases", args.version)
 
+syncSourceMetadata(args.source)
 updatePackageVersions(version)
 updateLockfileVersions(version)
+replaceRequired(
+  "README.md",
+  /BILINK_VERSION=v\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)? curl -fsSL https:\/\/bilink\.ai\/cli\/install\.sh \| sh/,
+  `BILINK_VERSION=${args.version} curl -fsSL https://bilink.ai/cli/install.sh | sh`,
+)
 
 if (args.syncInstallScript) {
   const installScript = firstExisting(args.source, ["bilink-cli/install.sh", "cli/install.sh"])
@@ -305,6 +425,9 @@ for (const target of targets) {
   const sourceBinary = firstExisting(args.source, target.sources)
   if (!sourceBinary) {
     throw new Error(`missing built binary for ${target.name}; checked ${target.sources.join(", ")}`)
+  }
+  if (target.name === hostTarget) {
+    verifyHostSourceBinaryVersion(sourceBinary, version)
   }
   const outputDir = path.join(root, target.packageDir, "bin")
   const outputBinary = path.join(outputDir, target.binaryName)

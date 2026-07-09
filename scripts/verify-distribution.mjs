@@ -43,6 +43,12 @@ if (rootPkg.private === true) {
 if (rootPkg.publishConfig?.registry !== "https://registry.npmjs.org/") {
   throw new Error("root package must publish to npmjs")
 }
+if (rootPkg.license !== "Apache-2.0") {
+  throw new Error("root package license must be Apache-2.0")
+}
+if (!rootPkg.files?.includes("LICENSE")) {
+  throw new Error("root package must include LICENSE in package files")
+}
 
 for (const packageName of Object.keys(rootPkg.optionalDependencies ?? {})) {
   if (!packageName.startsWith("@bilink-ai/cli-")) continue
@@ -65,6 +71,16 @@ for (const packageName of Object.keys(rootPkg.optionalDependencies ?? {})) {
   }
   if (!platformPkg.files?.includes("bin")) {
     throw new Error(`${packageName} must include bin in package files`)
+  }
+  if (platformPkg.license !== "SEE LICENSE IN LICENSE") {
+    throw new Error(`${packageName} license must be SEE LICENSE IN LICENSE`)
+  }
+  if (!platformPkg.files?.includes("LICENSE")) {
+    throw new Error(`${packageName} must include LICENSE in package files`)
+  }
+  const platformLicense = readFileSync(path.join(root, "platforms", target, "LICENSE"), "utf8")
+  if (!platformLicense.includes("Bilink Native CLI Binary License")) {
+    throw new Error(`${packageName} LICENSE must describe the native CLI binary license`)
   }
 }
 
