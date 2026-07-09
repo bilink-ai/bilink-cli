@@ -1,6 +1,6 @@
 {
   "name": "@bilink-ai/cli",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Bilink CLI binary distribution",
   "license": "Apache-2.0",
   "type": "module",
@@ -28,12 +28,12 @@
     "prepublishOnly": "node scripts/verify-distribution.mjs && node scripts/verify-release.mjs"
   },
   "optionalDependencies": {
-    "@bilink-ai/cli-darwin-arm64": "0.3.0",
-    "@bilink-ai/cli-darwin-x64": "0.3.0",
-    "@bilink-ai/cli-linux-arm64": "0.3.0",
-    "@bilink-ai/cli-linux-x64": "0.3.0",
-    "@bilink-ai/cli-win32-arm64": "0.3.0",
-    "@bilink-ai/cli-win32-x64": "0.3.0"
+    "@bilink-ai/cli-darwin-arm64": "0.3.1",
+    "@bilink-ai/cli-darwin-x64": "0.3.1",
+    "@bilink-ai/cli-linux-arm64": "0.3.1",
+    "@bilink-ai/cli-linux-x64": "0.3.1",
+    "@bilink-ai/cli-win32-arm64": "0.3.1",
+    "@bilink-ai/cli-win32-x64": "0.3.1"
   },
   "keywords": [
     "bilink",

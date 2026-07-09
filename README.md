@@ -34,7 +34,7 @@ bilink version
 Install a specific standalone release:
 
 ```bash
-BILINK_VERSION=v0.3.0 curl -fsSL https://bilink.ai/cli/install.sh | sh
+BILINK_VERSION=v0.3.1 curl -fsSL https://bilink.ai/cli/install.sh | sh
 ```
 
 ## What You Can Do

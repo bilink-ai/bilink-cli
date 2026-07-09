@@ -1,6 +1,6 @@
 {
   "name": "@bilink-ai/cli-linux-arm64",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Bilink native CLI binary for Linux arm64",
   "license": "SEE LICENSE IN LICENSE",
   "type": "module",
